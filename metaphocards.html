@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Метафорические карты</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1 {
+            text-align: center;
+            background-color: #43434300;
+            color: white;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            padding: 10px;
+            background-color: #f1f1f1;
+            position: sticky;
+            bottom: 0;
+            width: 100%;
+        }
+
+        input[type="number"] {
+            width: 60px;
+            margin: 0 10px;
+            font-size: 17px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 4px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #3e8e41;
+        }
+
+        .message {
+            margin: 10px 0;
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message span, .message img {
+            display: inline-block;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 70%;
+        }
+
+        .message.user span {
+            background-color: #e0f7fa;
+        }
+
+        .message.bot span {
+            background-color: #f1f1f1;
+        }
+
+        .message.bot img {
+            width: 250px;
+            height: auto;
+            border-radius: 10px;
+        }
+
+        @media (max-width: 480px) {
+            input[type="number"] {
+                width: 40px;
+            }
+
+            button {
+                padding: 5px 10px;
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 24px;
+            }
+
+            .card {
+                height: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Метафорические карты</h1>
+    <div class="chat-container" id="chatContainer"></div>
+    <div class="controls">
+        <input type="number" id="cardCount" min="1" max="88" placeholder="1-88">
+        <button id="drawCard">Вытянуть карту</button>
+        <button id="restart">Начать заново</button>
+    </div>
+    <script>
+        const shuffle = (arr) => {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+        };
+
+        const createCards = () => {
+            const cards = [];
+            for (let i = 1; i <= 88; i++) {
+                cards.push({
+                    id: i,
+                    image: `${i}.jpg`,
+                });
+            }
+            return cards;
+        };
+
+        let cards = createCards();
+        shuffle(cards);
+
+        
+
+        let selectedCards = [];
+        let cardDrawCount = 0;
+        
+
+        const chatContainer = document.getElementById('chatContainer');
+        const cardCountInput = document.getElementById('cardCount');
+        const drawCardButton = document.getElementById('drawCard');
+        const restartButton = document.getElementById('restart');
+
+        const instructions = [
+            "Теперь, когда ты уже собрал свои ассоциации по первой карте можно перейти ко второй. Вторая карта будет помогать отвечать на вопрос -  а как ты хочешь, чтобы было? Обрати внимание какие чувства и эмоции у тебя вызывает эта карта и о чем она тебе говорит в контексте твоего запроса? Чего на самом деле ты хочешь и как хочешь себя чувствовать, когда достигнешь желаемого?",
+            "Я надеюсь у тебя получается отключать логику и ловить свои первые мысли при появлении карты. Перейдем к третьей. Вопрос на который она поможет ответить - что нужно делать, для того, чтобы достичь желаемого? Какие действия, эмоции и чувства помогут тебе достичь желаемого?",
+            "Надеюсь, картинки в голове уже складываются в целое. Теперь подумай о том, что будет тебя вдохновлять для достижения желаемого? И тяни четверную карту.",
+            "Двигаемся дальше. Пятая карта даст подсказку, что тебе мешает достигать желаемого? Постарайся описать свои эмоции и чувства, которые вызывает эта карта.",
+            "И последняя шестая карта даст тебе ассоциации и подсказки о том,  что будет с тобой и твоей жизнью, когда ты достигнешь желаемого?",
+            "Подумай о том, сколько интересного о себе ты сегодня понял (-а). Обрати внимание на то, насколько тебе стало понятней, что происходит в твоей жизни, что тебе помогает и мешает достижению желаемой цели. Сейчас я попрошу тебя написать три конкретных шага, которые ты предпримешь для того, чтобы приблизиться к желаемому. Если ты готов сделать еще больше, для достижения результатов, то записывайся ко мне на сессию по кнопке ниже"
+        ];
+        
+
+        const addCardMessage = (card) => {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', 'bot');
+            const cardImg = document.createElement('img');
+            cardImg.src = card.image;
+            messageDiv.appendChild(cardImg);
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        };
+        const addMessage = (text, isUser = false) => {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', isUser ? 'user' : 'bot');
+            const messageSpan = document.createElement('span');
+            messageSpan.textContent = text;
+            messageDiv.appendChild(messageSpan);
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        };
+        const addGreetingMessage = () => {
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', 'bot');
+    const messageSpan = document.createElement('span');
+    messageSpan.textContent = 'Здравствуй. Этот тренажер создан для того, чтобы помочь разобраться с твоим запросом. Итак, найди тихое место, подумай о том, какую ситуацию в жизни ты хочешь исследовать, или есть что-то, что ты хочешь улучшить. Чтобы тебе было проще сформировать запрос, заполни пробелы в фразе: Сейчас в моей жизни (1 опиши как), а я хочу, чтобы стало вот так (2 опиши как). Поэтому мой запрос это - разобраться с тем, как мне прийти к желаемому (2). Когда запрос сформирован можно переходить дальше.Хочу обратить внимание, что к процессу желательно подойти без критики и обращать внимание на то, какие первые мысли приходят в голову - они будут самыми ценными. Чувства и эмоции - вот то, что будет верным помощником в этом исследовании себя 🙂';
+    messageDiv.appendChild(messageSpan);
+    chatContainer.appendChild(messageDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+};
+const addGreetingMessage2 = () => {
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', 'bot');
+    const messageSpan = document.createElement('span');
+    messageSpan.textContent = 'В поле ниже нужно будет набрать цифру и вытянуть карту. Первая карта, которую ты будешь вытягивать поможет ответить на вопрос - что сейчас есть в сфере, о которой твой запрос? Обрати внимание какие чувства и эмоции у тебя вызывает эта карта и о чем она тебе говорит в контексте твоего запроса? Что сейчас есть в твоей жизни и какие эмоции и чувства это вызывает, в контексте запроса?';
+    messageDiv.appendChild(messageSpan);
+    chatContainer.appendChild(messageDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+};
+const addEndMessage = () => {
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', 'bot');
+    const messageSpan = document.createElement('span');
+    messageSpan.textContent = 'Подумай о том, сколько интересного о себе ты сегодня понял (-а). Обрати внимание на то, насколько тебе стало понятней, что происходит в твоей жизни, что тебе помогает и мешает достижению желаемой цели. Сейчас я попрошу тебя написать три конкретных шага, которые ты предпримешь для того, чтобы приблизиться к желаемому. Если ты готов сделать еще больше, для достижения результатов, то записывайся ко мне на сессию по кнопке ниже';
+    messageDiv.appendChild(messageSpan);
+    chatContainer.appendChild(messageDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+};
+
+//addGreetingMessage();
+
+addGreetingMessage2();
+                 
+
+  
+
+       
+
+        drawCardButton.addEventListener('click', () => {
+            const cardCount = parseInt(cardCountInput.value);
+            if (isNaN(cardCount) || cardCount < 1 || cardCount > 88) {
+                alert("Пожалуйста, введите действительное число желаемой карты (1-88)");
+                return;
+            }
+
+            if (cards.length === 0) {
+                alert('В колоде больше нет карт. Пожалуйста, начните заново.');
+                return;
+            }
+
+            if (cardDrawCount >= 6) {
+                addEndMessage();
+                 
+                return;
+
+            }
+
+            const card = cards.shift();
+            selectedCards.push(card);
+
+            addMessage(`Какие ассоциации, мысли и эмоции вызывает карта номер: ${cardCount}`, true);
+            addCardMessage(card);
+            addMessage(instructions[cardDrawCount % instructions.length]);
+            
+
+            cardDrawCount++;
+
+            cardCountInput.value = "";
+        });
+
+        restartButton.addEventListener('click', () => {
+            selectedCards = [];
+            cardDrawCount = 0;
+            chatContainer.innerHTML = '';
+            cards = createCards();
+            shuffle(cards);
+        });
+    </script>
+</body>
+</html>
